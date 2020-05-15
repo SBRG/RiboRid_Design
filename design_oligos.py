@@ -16,14 +16,15 @@
 2. After you run it for one of the rRNA, add those oligos into the od oligos df so you can see if you can reuse them
 3. 
 """
-from  rRNA import RRNA
+from rRNA import RRNA
 from experiment import Experiment
-
+import pandas as pd
 
 def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_thresh,
                  mt_err, Na, Mg, oligoc, outdir, oligo_df, rRNA_fa):
 
-    exp = Experiment(max_gap, oligo_len, mt_thresh, mt_err, Na, Mg, oligoc, max_shift)
+    exp = Experiment(max_gap, max_shift, oligo_len, mt_thresh, mt_err, Na, Mg, oligoc)
+    print(exp.Na, exp.Mg, exp.oligoc)
     #TODO: this should not be hardcoded
     #might be ok for now since bacteria mostly have these
     #TODO: parse oligos_df and assign it to rRNA specific
@@ -31,18 +32,18 @@ def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_t
     r16 = RRNA(name, gbk, rtype='16S', rRNA_fa=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)  
     r5 =  RRNA(name, gbk, rtype='5S', rRNA_fa=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
 
-
     for r in [r23, r16, r5]:
         if oligos_fa:
             exp.align_oligos(r, oligos_fa)
             r.oligos_df = exp.find_old_oligos(r, oligos_fa)  
-        new_oligos = exp.gapfill(r, oligos_fa)
+        new_oligos = exp.gapfill(r)
         if r.oligos_df:
             r.oligos_df = pd.concat([r.oligos_df, new_oligos])
         else:
             r.oligos_df = new_oligos
 
-    return r23, r16, r5
+    oligos = pd.concat([r23.oligos_df, r16.oligos_df, r5.oligos_df]).reset_index()
+    oligos.to_csv('test.csv')
 
 if __name__== '__main__':
     #TODO: accept rRNA file instead of gbk as positional argument
@@ -83,4 +84,6 @@ if __name__== '__main__':
                    'doesn\'t do anything yet', type=str)
     
     params = vars(p.parse_args())
+    if len(params['gbk']) == 0:
+        p.error('Must provide at least one genbank file.')
     design_oligos(**params)

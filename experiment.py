@@ -1,19 +1,28 @@
+import itertools
+import subprocess
+import pandas as pd
+
+from Bio import SeqIO
+from Bio.Blast import NCBIXML
+from Bio.SeqUtils import MeltingTemp as mt
+
+#TODO: implement the mt_tm error correction
 class Experiment():
     """
     This class holds all the information about the experimental setup
     e.g. oligco concentration, melting temp etc.
 
     """
-    def __init__(self, max_gap=9, oligo_len=32, mt_thresh=65, mt_err=3, Na=100, Mg=4, oligoc=150, max_shift=10):
+    def __init__(self, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65, mt_err=3, Na=100, Mg=4,                            oligoc=150):
 
         self.max_gap = max_gap
+        self.max_shift = max_shift
         self.oligo_len = oligo_len
         self.mt_thresh = mt_thresh
         self.mt_err = mt_err
         self.Na = Na
         self.Mg = Mg
         self.oligoc = oligoc
-        self.max_shift = max_shift
 
 
     def align_oligos(self, rrna, oligos_fa):
@@ -84,7 +93,7 @@ class Experiment():
             mt_tm = mt.Tm_NN(matchseq.transcribe(),nn_table=mt.R_DNA_NN1, 
                              Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
             if mt_tm >= self.mt_thresh - self.mt_err:
-                oligo_list.append([align.title.split(' ')[-1], aln_info[0], float(hsp.identities)/len(hsp.query),hsp.query_start,
+                oligo_list.append([align.title.split(' ')[-1], aln_info[0],                                                                     float(hsp.identities)/len(hsp.query),hsp.query_start,
              hsp.query_end, hsp.sbjct_start, hsp.sbjct_end, align.length, mt_tm, 'old_oligo'])
             
         old_oligos_df = pd.DataFrame(oligo_list,columns=['oligo_name', 'target_rRNA','pident','rRNA_start',
@@ -163,35 +172,35 @@ class Experiment():
         new_oligos_df:Pandas dataframe containing aligned oligos and their alignment properties.
         """
 
-        #TODO: Do we really need to look at all rRNA? Shouldn't this contain one consensus sequence?
-        all_rRNA = {seq.id: seq for seq in SeqIO.parse(rrna.rRNA_fa, 'fasta')}
+        all_rRNA = {seq.id: seq for seq in SeqIO.parse(rrna.consensus, 'fasta')}
         all_gaps = {}
-
-        if rrna.old_oligos_df is None:
-            all_gaps.update(dict(zip([s for s in all_rRNA], [(50, len(seqs)) for seqs in all_rRNA])))
-            return all_gaps #TODO: why are we returning all_gaps?
+        if rrna.oligos_df is None:
+            #TODO: clean this up, its unreadable
+            all_gaps.update(dict(zip([s for s in all_rRNA], 
+                                     [((0, len(seqs)) for seqs in all_rRNA.values())])))
+            
         else:
             for seq_id in all_rRNA:
                 rRNA_seq = all_rRNA[seq_id].seq
-                odf = rrna.old_oligos_df[rrna.old_oligos_df.target_rRNA == seq_id]
+                odf = rrna.old_oligos_df[rrna.oligos_df.target_rRNA == seq_id]
                 gaps = find_gaps(odf, rRNA_seq) #TODO fix parameters, might not need to pass both
                 all_gaps.update({seq_id:gaps})
         new_oligos = []
         oligo_n = 0 #track number of new oligos added
-        for seq_id, gaps in list(all_gaps.items()):
+        for seq_id, gaps in all_gaps.items():
             rRNA_seq = all_rRNA[seq_id].seq
             for gap in sorted(gaps):
                 gap_str = (rRNA_seq[gap[0]: gap[1]]) # get the sequence of gap
                 gap_len = gap[1] - gap[0]
                 gpos = gap[0]
 
-                itr = max(self.max_gap, oligo_len)
+                itr = max(self.max_gap, self.oligo_len)
                 while gpos + itr <= gap[1]:
                     if gpos + self.max_gap + self.oligo_len < gap[1]:
                         temp= gpos
                         gpos = gpos + self.max_gap
                     #adding oligo will lead to overlap with existing one
-                    if gpos + self.oligo_len >= self.gap_len + gap[0]:
+                    if gpos + self.oligo_len >= gap_len + gap[0]:
                         gap_mid = round((gap[1] + gpos) / 2)
                         gpos = int(gap_mid - round(float(self.oligo_len)/2))
 
@@ -202,7 +211,7 @@ class Experiment():
                     #if mt_tm is too low, shift the frame to right and try again
                     #TODO: consider moving both sides, but that might create complications
                     if mt_tm < self.mt_thresh:
-                        gpos, mt_tm = __find_maxtm(gpos, rRNA_seq, oseq, self.oligo_len)
+                        gpos, mt_tm = self.__find_maxtm(gpos, rRNA_seq, oseq)
 
                     name = 'New_Oligo_' + str(oligo_n)
                     oligo_n += 1
