@@ -7,20 +7,19 @@ from Bio.Align import AlignInfo
 class RRNA:
     # TODO: what to do if rrna_fa already exists.
     # TODO: Figure out how to implement oligo_df and check if it messes with gap filling
-    def __init__(self, name, gb_files, rtype, rrna_fa=None, outdir='rrd', pre=0, oligos_df=None):
+    def __init__(self, name, rtype, infile, ftype, outdir='rrd', pre=0, oligos_df=None):
         """
         Parameters
         ------------
         name: string
             name of the rRNA, usually 23S, 16S or 5S
-        gb_files: string, list
-            path to gb file or list of paths to multiple gb files; cannot be passed at the same
-            time as rrna_fa.
         rtype: str
             type of rRNA e.g. 16S, 23S, 5S
-        rrna_fa: string, default None
-            path to fasta file containing sequences for 23S, 16S or 5S rRNA; cannot be passed at
-            the same time as the gb_files.
+        infile: string, list
+            path to input file or list of paths to multiple input files; input files must be
+            either genbank or fasta.
+        ftype: string
+            type of input file; 'genbank' or 'fasta'
         outdir: str, default rrd
             path to the output directory
         pre: int, default 0
@@ -30,18 +29,18 @@ class RRNA:
             path to csv file containing sequences for old oligos that you want to reuse
         """
         # run param checks
-        if gb_files and rrna_fa:
-            raise AttributeError('Cannot pass both rrna_fa and gb_files')
-        if pre !=0 and rrna_fa:
-            raise AttributeError('Cannot pass both rrna_fa and pre')
+        if ftype not in ['fasta', 'genbank']:
+            raise AttributeError('ftype must be either \'fasta\' or \'genbank\' ')
+        if pre !=0 and ftype=='fasta':
+            raise AttributeError('Cannot pass both rrna fasta and pre rRNA')
 
         self.name = name
         self.rtype = rtype
         self.outdir = outdir
         self.pre = pre
-        self.gbk_files = gb_files
+        self.infile = infile
         self.oname = path.abspath(f'{self.outdir}/{self.name}_{self.rtype}')
-        self.rrna_fa = rrna_fa
+        self.ftype = ftype
         self.consensus = self.get_consensus(clst=self.oname + '_clustal.clst',
                                             cs_file=self.oname + '_consensus',
                                             cs_name=self.name + '_consensus')
@@ -49,32 +48,23 @@ class RRNA:
         self.oligos_df = oligos_df
 
     @property
-    def rrna_fa(self):
+    def ftype(self):
         """Get loc of rrna fasta file"""
-        return self.__rrna_fa
+        return self.__ftype
 
-    @rrna_fa.setter
-    def rrna_fa(self, rrna_fa):
-        if rrna_fa:
-            self.__rrna_fa = path.abspath(rrna_fa)
-        else:
-            self.__rrna_fa = self.oname + '.fa'
+    @ftype.setter
+    def ftype(self, ftype):
+        if ftype == 'fasta':
+            self.rrna_fa = path.abspath(self.infile)
+        else:  #generate fasta file from gbk infile
+            self.rrna_fa = self.oname + '.fa'
             self.get_rRNA()
+        self.__ftype = ftype
 
-    @property
-    def gbk_files(self):
-        """ Get the list of gbk_files"""
-        return self.__gbk_files
     @property
     def outdir(self):
         """ Get dir for the output files"""
         return self.__outdir
-
-    @gbk_files.setter
-    def gbk_files(self, gb_files):
-        if gb_files and type(gb_files) == str:
-            gb_files = [gb_files]
-        self.__gbk_files = gb_files
 
     @outdir.setter
     def outdir(self, outdir):
@@ -85,10 +75,22 @@ class RRNA:
         #update full outdir name
         self.__oname = f'{self.outdir}/{self.name}_{self.rtype}_'
 
+    @property
+    def infile(self):
+        """ Get the list of gbk_files"""
+        return self.__infile
+
+    @infile.setter
+    def infile(self, infile):
+        if type(infile) == str:
+            infile = [infile]
+        self.__infile = infile
+
+
 
     def get_rRNA(self):
         """ Generate fasta files of all rRNA in genbank file"""
-        for gbk in self.gbk_files:
+        for gbk in self.infile:
             rrna_count = False
 
             for ref_seq in SeqIO.parse(gbk, 'genbank'):

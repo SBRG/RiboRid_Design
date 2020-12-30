@@ -17,9 +17,9 @@ def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_t
     # TODO: this should not be hardcoded
     # might be ok for now since bacteria mostly have these
     # TODO: parse oligos_df and assign it to rRNA specific
-    r23 = RRNA(name, gbk, rtype='23S', rrna_fa=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r16 = RRNA(name, gbk, rtype='16S', rrna_fa=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r5 = RRNA(name, gbk, rtype='5S', rrna_fa=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r23 = RRNA(name, rtype='23S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r16 = RRNA(name, rtype='16S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r5 = RRNA(name, rtype='5S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
 
     for r in [r23, r16, r5]:
         if oligos_fa:
@@ -39,8 +39,8 @@ if __name__ == '__main__':
     # TODO: accept rRNA file instead of gbk as positional argument
     # TODO: add force argument on whether to overwrite any of the files in there.
     import argparse
-    p = argparse.ArgumentParser(description='Design oligos for rRNA removal using riboRid protocol.')
-    p.add_argument('gbk', help='Paths to genbank files of the target organism. Must have rRNA annotated.',
+    p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
+    p.add_argument('infile', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
                    nargs='*')
     p.add_argument('-n', '--name', help='Name of the experiment design. Makes it easier to track multiple'
                    'designs; default rrd', type=str, default='rrd')
@@ -69,8 +69,8 @@ if __name__ == '__main__':
                    'files(fix coming soon); default rrd', type=str, default='rrd')
     p.add_argument('--oligo_df', help='Path to csv file containing previously designed'
                    'oligos for target organism', type=str)
-    p.add_argument('--rrna_fa', help='Path to fasta file containing rRNA sequence. Still under construction,'
-                   'doesn\'t do anything yet', type=str)
+    p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
+                   type=str)
     
     params = vars(p.parse_args())
     if len(params['gbk']) == 0:
