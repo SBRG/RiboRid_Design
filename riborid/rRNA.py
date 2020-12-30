@@ -7,7 +7,7 @@ from Bio.Align import AlignInfo
 class RRNA:
     # TODO: what to do if rrna_fa already exists.
     # TODO: Figure out how to implement oligo_df and check if it messes with gap filling
-    def __init__(self, name, rtype, infile, ftype, outdir='rrd', pre=0, oligos_df=None):
+    def __init__(self, infile, name, rtype, outdir='rrd', pre=0, oligos_df=None):
         """
         Parameters
         ------------
@@ -28,11 +28,6 @@ class RRNA:
         oligos_df: string
             path to csv file containing sequences for old oligos that you want to reuse
         """
-        # run param checks
-        if ftype not in ['fasta', 'genbank']:
-            raise AttributeError('ftype must be either \'fasta\' or \'genbank\' ')
-        if pre !=0 and ftype=='fasta':
-            raise AttributeError('Cannot pass both rrna fasta and pre rRNA')
 
         self.name = name
         self.rtype = rtype
@@ -40,26 +35,11 @@ class RRNA:
         self.pre = pre
         self.infile = infile
         self.oname = path.abspath(f'{self.outdir}/{self.name}_{self.rtype}')
-        self.ftype = ftype
         self.consensus = self.get_consensus(clst=self.oname + '_clustal.clst',
                                             cs_file=self.oname + '_consensus',
                                             cs_name=self.name + '_consensus')
 
         self.oligos_df = oligos_df
-
-    @property
-    def ftype(self):
-        """Get loc of rrna fasta file"""
-        return self.__ftype
-
-    @ftype.setter
-    def ftype(self, ftype):
-        if ftype == 'fasta':
-            self.rrna_fa = path.abspath(self.infile)
-        else:  #generate fasta file from infile infile
-            self.rrna_fa = self.oname + '.fa'
-            self.get_rRNA()
-        self.__ftype = ftype
 
     @property
     def outdir(self):
@@ -72,7 +52,7 @@ class RRNA:
             mkdir(outdir)
         self.__outdir = outdir
 
-        #update full outdir name
+        # update full outdir name
         self.__oname = f'{self.outdir}/{self.name}_{self.rtype}_'
 
     @property
@@ -85,42 +65,6 @@ class RRNA:
         if type(infile) == str:
             infile = [infile]
         self.__infile = infile
-
-
-
-    def get_rRNA(self):
-        """ Generate fasta files of all rRNA in genbank file"""
-        for gbk in self.infile:
-            rrna_count = False
-
-            for ref_seq in SeqIO.parse(gbk, 'genbank'):
-                for feat in [f for f in ref_seq.features if f.type == 'rRNA']:
-                    product = feat.qualifiers['product'][0]
-                    # distinguish between 23S, 16S and 5S
-                    if product.startswith(self.rtype):
-                        self.write_fasta(feat, ref_seq)
-                        rrna_count = True
-            if not rrna_count:
-                raise ValueError(f'No {self.rtype} rRNA found in {gbk}. Please reannotate with prokka.')
-            else:
-                print((str(rrna_count) + ' rRNA sequences found in ' + gbk))
-
-    def write_fasta(self, feat, ref_seq):
-        """
-        Write the feature sequence into the fasta file
-        """
-        with open(self.rrna_fa, 'a+') as fa_out:
-            start, end = feat.location.start - self.pre, feat.location.end
-
-            if feat.strand == -1:
-                seq = ref_seq.seq[start: end + self.pre]
-                seq = seq.reverse_complement()
-            else:
-                seq = ref_seq.seq[start - self.pre: end]
-
-            fa_out.write('>{}|{}\n{}\n'.format(feat.qualifiers['locus_tag'][0],
-                                               feat.qualifiers['product'][0],
-                                               str(seq)))
 
     def get_consensus(self, clst='clustal.clst', cs_file='consensus.fa', cs_name='consensus'):
         """ 
@@ -139,8 +83,8 @@ class RRNA:
             cs_file = cs_file + '.fa'
 
         if path.isfile(cs_file) and cs_name in [r.id for r in SeqIO.parse(cs_file, 'fasta')]:
-            Warning('Consensus sequence for {} already exists in {}.'
-                          'File will not be overwritten'.format(cs_name, cs_file))
+            Warning(f'Consensus sequence for {cs_name} already exists in {cs_file}.'
+                          'File will not be overwritten')
             return cs_file
 
         # get multiple sequence alignment with clstalo

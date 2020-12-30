@@ -5,42 +5,113 @@ THE NEXT THING TO FIGURE OUT HERE IS HOW TO HANDLE AND STORE INDIVIDUAL OLIGOS
 """
 from rRNA import RRNA
 from experiment import Experiment
+
+from Bio import SeqIO
 import pandas as pd
+from os import path
 
 
-def design_oligos(infile, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_thresh,
-                  mt_err, na, mg, oligoc, outdir, oligo_df, rRNA_fa):
+def design_oligos(infile, ftype, name, pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
+                  mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None):
+    """
+    Main function used to run riborid oligo design. This will generate the desired oligos given
+    the sequence information from the organism and the experimental conditions.
+    """
 
     # initialize the experiment
     exp = Experiment(max_gap, max_shift, oligo_len, mt_thresh, mt_err, na, mg, oligoc)
 
-    # TODO: this should not be hardcoded
-    # might be ok for now since bacteria mostly have these
-    # TODO: parse oligos_df and assign it to rRNA specific
-    r23 = RRNA(name, rtype='23S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r16 = RRNA(name, rtype='16S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r5 = RRNA(name, rtype='5S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    if not rrna_type:
+        rrna_type = ['16S', '23S']
 
-    for r in [r23, r16, r5]:
+    if type(infile) == str:
+        infile = [infile]
+
+    # generate rRNA from genbank
+    if ftype == 'genbank':
+        rrna_fa = path.join(outdir, 'combined_rRNA.fa')
+        for gbk in infile:
+            parse_genbank(gbk, pre, rrna_type, rrna_fa)
+    else:
+        rrna_fa = infile
+    split_names = split_rrna(rrna_fa, rrna_type, outdir)
+
+    rrna_dict = {rt: RRNA(infile=split_names[rt], name=name,
+                          rtype=rt, outdir=outdir, pre=pre,
+                          oligos_df=oligo_df) for rt in rrna_type}
+
+    # generate oligos for each rRNA type
+    for rname, rna_obj in rrna_dict.items():
         if oligos_fa:
-            exp.align_oligos(r, oligos_fa)
-            r.oligos_df = exp.find_old_oligos(r, oligos_fa)  
-        new_oligos = exp.gapfill(r)
-        if r.oligos_df:
-            r.oligos_df = pd.concat([r.oligos_df, new_oligos])
+            exp.align_oligos(rna_obj, oligos_fa)
+            rna_obj.oligos_df = exp.find_old_oligos(rna_obj, oligos_fa)
+        new_oligos = exp.gapfill(rna_obj)
+        if rna_obj.oligos_df:
+            rna_obj.oligos_df = pd.concat([rna_obj.oligos_df, new_oligos])
         else:
-            r.oligos_df = new_oligos
+            rna_obj.oligos_df = new_oligos
 
-    oligos = pd.concat([r23.oligos_df, r16.oligos_df, r5.oligos_df]).reset_index()
+    oligos = pd.concat([i.oligos_df for i in rrna_dict.values]).reset_index()
     oligos.to_csv('test.csv')
+
+
+def split_rrna(rrna_fa, rrna_type, outdir):
+    """ Splits a full rRNA file into individual files """
+    split_names = {}
+    for rt in rrna_type:
+        rt_found = False
+        rt_name = path.join(outdir, str(rt) + '_rrna.fa')
+        split_names.update({rt: rt_name})
+        with open(rt_name, 'w') as rt_out:
+            for refseq in SeqIO.parse(rrna_fa, 'fasta'):
+                if refseq.id.split('|')[1].startswith(rt):
+                    rt_out.write(f'>{refseq.id}\n{refseq.seq}\n')
+            if not rt_found:
+                raise ValueError(f'No {rt} rRNA found in {rrna_fa}')
+    return split_names
+
+
+def parse_genbank(gbk, pre, rrna_type, rrna_fa):
+    rrna_found = False
+    for ref_seq in SeqIO.parse(gbk, 'genbank'):
+        for feat in [f for f in ref_seq.features if f.type == 'rRNA']:
+            product = feat.qualifiers['product'][0]
+            # distinguish between 23S, 16S and 5S
+
+            if product.startswith(tuple(rrna_type)):
+                write_fasta(feat, ref_seq, pre, rrna_fa)
+                rrna_found = True
+
+    if rrna_found:
+        return
+    raise ValueError(f'No {rrna_type} rRNA found in {gbk}. Please reannotate with prokka.')
+
+
+def write_fasta(feat, ref_seq, pre, rrna_fa):
+    """
+    Write the feature sequence into the fasta file
+    """
+    with open(rrna_fa, 'a+') as fa_out:
+        start, end = feat.location.start - pre, feat.location.end
+        if feat.strand == -1:
+            seq = ref_seq.seq[start: end + pre]
+            seq = seq.reverse_complement()
+        else:
+            seq = ref_seq.seq[start - pre: end]
+
+        fa_out.write('>{}|{}\n{}\n'.format(feat.qualifiers['locus_tag'][0],
+                                           feat.qualifiers['product'][0],
+                                           str(seq)))
 
 
 if __name__ == '__main__':
     # TODO: add force argument on whether to overwrite any of the files in there.
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
-    p.add_argument('infile', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
+    p.add_argument('gbk', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
                    nargs='*')
+    p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
+                   type=str)
     p.add_argument('-n', '--name', help='Name of the experiment design. Makes it easier to track multiple'
                    'designs; default rrd', type=str, default='rrd')
     p.add_argument('-p', '--pre', help='Number of bp upstream of rRNA start site to include as oligo targets.'
@@ -68,8 +139,6 @@ if __name__ == '__main__':
                    'files(fix coming soon); default rrd', type=str, default='rrd')
     p.add_argument('--oligo_df', help='Path to csv file containing previously designed'
                    'oligos for target organism', type=str)
-    p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
-                   type=str)
     
     params = vars(p.parse_args())
     design_oligos(**params)

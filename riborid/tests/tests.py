@@ -8,16 +8,14 @@ from riborid import design_oligos, experiment, rRNA
 
 
 def test_rrna_wgbk():
-    "test if rrna object is created properly with infile input"
+    "test if rrna object is created properly with gbk input"
 
-    rrna_test = rRNA.RRNA('ex', '23S', 'tests/example_data/Saureus_TCH1516.gb',
-                          'genbank', outdir='test_out')
+    rrna_test = rRNA.RRNA('tests/example_data/Saureus_TCH1516.gb', 'ex', '23S', 'genbank')
     rrna_checksum(rrna_test)
 
 def test_rrna_wfa():
     " test if rrna object is created properly with rrna fasta input "
-    rrna_test = rRNA.RRNA('ex', '23S', 'tests/example_data/Saureus_TCH1516_23S.fa',
-                          'fasta', outdir='test_out')
+    rrna_test = rRNA.RRNA('tests/example_data/Saureus_TCH1516_23S.fa', 'ex', '23S', 'fasta')
     rrna_checksum(rrna_test)
 
 def rrna_checksum(rrna_test):
