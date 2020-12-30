@@ -8,7 +8,7 @@ from riborid import design_oligos, experiment, rRNA
 
 
 def test_rrna_wgbk():
-    "test if rrna object is created properly with gbk input"
+    "test if rrna object is created properly with infile input"
 
     rrna_test = rRNA.RRNA('ex', '23S', 'tests/example_data/Saureus_TCH1516.gb',
                           'genbank', outdir='test_out')

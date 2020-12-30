@@ -8,7 +8,7 @@ from experiment import Experiment
 import pandas as pd
 
 
-def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_thresh,
+def design_oligos(infile, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_thresh,
                   mt_err, na, mg, oligoc, outdir, oligo_df, rRNA_fa):
 
     # initialize the experiment
@@ -17,9 +17,9 @@ def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_t
     # TODO: this should not be hardcoded
     # might be ok for now since bacteria mostly have these
     # TODO: parse oligos_df and assign it to rRNA specific
-    r23 = RRNA(name, rtype='23S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r16 = RRNA(name, rtype='16S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
-    r5 = RRNA(name, rtype='5S', infile=gbk, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r23 = RRNA(name, rtype='23S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r16 = RRNA(name, rtype='16S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
+    r5 = RRNA(name, rtype='5S', infile=infile, ftype=rRNA_fa, outdir=outdir, pre=pre, oligos_df=oligo_df)
 
     for r in [r23, r16, r5]:
         if oligos_fa:
@@ -36,7 +36,6 @@ def design_oligos(gbk, name, pre, oligos_fa, max_gap, max_shift, oligo_len, mt_t
 
 
 if __name__ == '__main__':
-    # TODO: accept rRNA file instead of gbk as positional argument
     # TODO: add force argument on whether to overwrite any of the files in there.
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
@@ -73,6 +72,4 @@ if __name__ == '__main__':
                    type=str)
     
     params = vars(p.parse_args())
-    if len(params['gbk']) == 0:
-        p.error('Must provide at least one genbank file.')
     design_oligos(**params)

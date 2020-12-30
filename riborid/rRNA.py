@@ -56,7 +56,7 @@ class RRNA:
     def ftype(self, ftype):
         if ftype == 'fasta':
             self.rrna_fa = path.abspath(self.infile)
-        else:  #generate fasta file from gbk infile
+        else:  #generate fasta file from infile infile
             self.rrna_fa = self.oname + '.fa'
             self.get_rRNA()
         self.__ftype = ftype
@@ -111,9 +111,13 @@ class RRNA:
         """
         with open(self.rrna_fa, 'a+') as fa_out:
             start, end = feat.location.start - self.pre, feat.location.end
-            seq = ref_seq.seq[start: end]
+
             if feat.strand == -1:
+                seq = ref_seq.seq[start: end + self.pre]
                 seq = seq.reverse_complement()
+            else:
+                seq = ref_seq.seq[start - self.pre: end]
+
             fa_out.write('>{}|{}\n{}\n'.format(feat.qualifiers['locus_tag'][0],
                                                feat.qualifiers['product'][0],
                                                str(seq)))
