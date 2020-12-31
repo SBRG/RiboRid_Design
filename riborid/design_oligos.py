@@ -36,7 +36,7 @@ def design_oligos(infile, ftype, name, pre=0, rrna_type=None, oligos_fa=None, ma
         rrna_fa = infile
     split_names = split_rrna(rrna_fa, rrna_type, outdir)
 
-    rrna_dict = {rt: RRNA(infile=split_names[rt], name=name,
+    rrna_dict = {rt: RRNA(rrna_fa=split_names[rt], name=name,
                           rtype=rt, outdir=outdir, pre=pre,
                           oligos_df=oligo_df) for rt in rrna_type}
 
@@ -105,10 +105,17 @@ def write_fasta(feat, ref_seq, pre, rrna_fa):
 
 
 if __name__ == '__main__':
+
+    """
+    (rrna_fa, ftype, name, pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
+    mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None):
+    """
+
+
     # TODO: add force argument on whether to overwrite any of the files in there.
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
-    p.add_argument('gbk', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
+    p.add_argument('rrna_fa', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
                    nargs='*')
     p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
                    type=str)
@@ -116,6 +123,8 @@ if __name__ == '__main__':
                    'designs; default rrd', type=str, default='rrd')
     p.add_argument('-p', '--pre', help='Number of bp upstream of rRNA start site to include as oligo targets.'
                    'This deals with some organisms that have pre-rRNA; default 0', type=int, default=0)
+    p.add_argument('--rrna_type', help='Type of rRNAs to design oligos against; Default 16s and 23S.',
+                   nargs='*')
     p.add_argument('--oligos_fa', help='Path to fasta file with sequences of old oligos to be reused.',
                   type=str)
     p.add_argument('--max_gap', help='Maximum gap allowed between oligos; default 50',

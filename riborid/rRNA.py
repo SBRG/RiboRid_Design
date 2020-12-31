@@ -7,25 +7,25 @@ from Bio.Align import AlignInfo
 class RRNA:
     # TODO: what to do if rrna_fa already exists.
     # TODO: Figure out how to implement oligo_df and check if it messes with gap filling
-    def __init__(self, infile, name, rtype, outdir='rrd', pre=0, oligos_df=None):
+    def __init__(self, rrna_fa, name, rtype, outdir='rrd', pre=0, oligos_df=None):
         """
         Parameters
         ------------
-        name: string
+        name: str
             name of the rRNA, usually 23S, 16S or 5S
         rtype: str
             type of rRNA e.g. 16S, 23S, 5S
-        infile: string, list
-            path to input file or list of paths to multiple input files; input files must be
-            either genbank or fasta.
-        ftype: string
+        rrna_fa: str, list
+            path to input file or list of paths to multiple input rrna file; each fasta file
+            must contain sequences from single rtype e.g. '23S', '5S' etc.
+        ftype: str
             type of input file; 'genbank' or 'fasta'
         outdir: str, default rrd
             path to the output directory
         pre: int, default 0
             number of base-pairs upstream of rRNA to generate oligos for. Must provide genbank
             files to use this option.
-        oligos_df: string
+        oligos_df: str, default None
             path to csv file containing sequences for old oligos that you want to reuse
         """
 
@@ -33,7 +33,7 @@ class RRNA:
         self.rtype = rtype
         self.outdir = outdir
         self.pre = pre
-        self.infile = infile
+        self.rrna_fa = rrna_fa
         self.oname = path.abspath(f'{self.outdir}/{self.name}_{self.rtype}')
         self.consensus = self.get_consensus(clst=self.oname + '_clustal.clst',
                                             cs_file=self.oname + '_consensus',
@@ -56,15 +56,15 @@ class RRNA:
         self.__oname = f'{self.outdir}/{self.name}_{self.rtype}_'
 
     @property
-    def infile(self):
+    def rrna_fa(self):
         """ Get the list of gbk_files"""
-        return self.__infile
+        return self.__rrna_fa
 
-    @infile.setter
-    def infile(self, infile):
-        if type(infile) == str:
-            infile = [infile]
-        self.__infile = infile
+    @rrna_fa.setter
+    def rrna_fa(self, rrna_fa):
+        if type(rrna_fa) == str:
+            rrna_fa = [rrna_fa]
+        self.__rrna_fa = rrna_fa
 
     def get_consensus(self, clst='clustal.clst', cs_file='consensus.fa', cs_name='consensus'):
         """ 
