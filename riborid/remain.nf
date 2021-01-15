@@ -24,21 +24,34 @@ Channel
 
 process download_gb {
 	
-	publishDir "${params.stage}"
-
 	input:
 	val download_path from ftplinks_ch
 	
 	output:
-	file '*gbff.gz' into result
+	file '*gbff.gz' into gzip_file
 
 	shell:
 
 	'''
 	OUTPUT=$(basename !{download_path})
-	curl !{download_path} -o rando_text.gbff.gz
+	curl !{download_path} -o $OUTPUT
 	'''
 }
-//curl !{download_path} -o "/home/saugat/Desktop/gb_test/stage/$OUTPUT"	
-//result.subscribe {println it}
+
+process unzip_gb {
+	
+	publishDir "${params.stage}"
+	
+	input:
+	file (zipped_file) from gzip_file
+
+	output:
+	file '*gbff' into gb_file
+
+	shell:
+	
+	'''gunzip -f !{zipped_file}'''
+}
+
+
 
