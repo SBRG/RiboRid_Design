@@ -10,42 +10,35 @@
 """
 
 /// *******************************
-// * Step 1: Parse metadata file *
+// * Step 1: Download genbank files *
 // *******************************
 
 params.ftpfilepath = '/home/saugat/Desktop/gb_test/testpaths.txt'
 params.stage = '/home/saugat/Desktop/gb_test/stage'
 
-// Ensure file exists
-File ftplist = new File(params.ftpfilepath)
-assert(ftplist.exists())
+Channel
+	.fromPath(params.ftpfilepath)
+	.splitText()
+	.map{ it.trim() }
+	.set{ ftplinks_ch }
 
-allLines = ftplist.readLines()
-
-/*proces inandout {
-	input:
-	file download_path from allLines
-
-	output:
-	set 
-}
-*/
 process download_gb {
 	
+	publishDir "${params.stage}"
+
 	input:
-	val download_path from allLines
+	val download_path from ftplinks_ch
 	
 	output:
-	stdout into result
+	file '*gbff.gz' into result
 
 	shell:
 
 	'''
 	OUTPUT=$(basename !{download_path})
-	echo  "$OUTPUT" 
-	echo !{download_path} 
+	curl !{download_path} -o rando_text.gbff.gz
 	'''
 }
-	
-result.subscribe {println it}
+//curl !{download_path} -o "/home/saugat/Desktop/gb_test/stage/$OUTPUT"	
+//result.subscribe {println it}
 
