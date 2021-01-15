@@ -53,5 +53,7 @@ process unzip_gb {
 	'''gunzip -f !{zipped_file}'''
 }
 
-
+//run riborid
+//store it
+//analyze it
 
