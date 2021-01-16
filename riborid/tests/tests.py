@@ -11,7 +11,7 @@ class TestRrna(unittest.TestCase):
 
     def setUP(self):
         print('Setting Up rrna tests...')
-        self.rrna_test = rRNA.RRNA(rrna_fa='tests/example_data/Saureus_TCH1516_23S.fa',
+        self.rrna_test = rRNA.RRNA(rrna_fa='tests/test_data/Saureus_TCH1516_23S.fa',
                                    name='ex', rtype='23S', outdir='test_out',
                                    pre=150, oligos_df=None)
         # checksum of properly created files
@@ -22,18 +22,26 @@ class TestRrna(unittest.TestCase):
         print('Cleaning Up')
         pass
 
-    def test_rrna_init(self):
-        """ test if rrna object is created properly with rrna fasta input """
-
-        print('Testing rrna init')
+    def test_init_name(self):
         self.assertEqual(self.rrna_test.name, 'ex')
+
+    def test_init_rtype(self):
         self.assertEqual(self.rrna_test.rtype, '23S')
+
+    def test_init_outdir(self):
         self.assertEqual(self.rrna_test.outdir, 'rrd')
+
+    def test_init_pre(self):
         self.assertEqual(self.rrna_test.pre, 150)
+
+    def test_init_na_oligosdf(self):
         self.assertIsNone(self.rrna_test.oligos_df)
+
+    def test_init_outpath(self):
         self.assertTrue(os.path.exists(self.rrna_test.rrna_fa))
 
-        # check if the files are created properly
+    # check if the files are created properly
+    def test_init_rrnafa(self):
         self.assertEqual(hashlib.md5(open(self.rrna_test.rrna_fa, 'rb').read()).hexdigest(),
                          self.rrna_hex)
         self.assertEqual(hashlib.md5(open(self.rrna_test.consensus, 'rb').read()).hexdigest(),
