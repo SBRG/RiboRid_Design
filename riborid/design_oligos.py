@@ -8,10 +8,10 @@ from experiment import Experiment
 
 from Bio import SeqIO
 import pandas as pd
-from os import path
+from os import path, mkdir
 
 
-def design_oligos(infile, ftype, name, pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
+def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
                   mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None):
     """
     Main function used to run riborid oligo design. This will generate the desired oligos given
@@ -24,16 +24,29 @@ def design_oligos(infile, ftype, name, pre=0, rrna_type=None, oligos_fa=None, ma
     if not rrna_type:
         rrna_type = ['16S', '23S']
 
-    if type(infile) == str:
-        infile = [infile]
+    if ftype not in ['genbank', 'fasta']:
+        raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
 
+    if not path.isdir(outdir):
+        mkdir(outdir)
     # generate rRNA from genbank
     if ftype == 'genbank':
+        if type(infile) == str:
+            infile = [infile]
+
         rrna_fa = path.join(outdir, 'combined_rRNA.fa')
         for gbk in infile:
             parse_genbank(gbk, pre, rrna_type, rrna_fa)
+    #rrna fasta passed
     else:
-        rrna_fa = infile
+        if type(infile) == list:
+                if len(infile) > 1:
+                    raise ValueError('More than one rrna fasta passed. Concat all sequences into single fasta file.')
+                else:
+                    rrna_fa = infile[0]
+        else: #str or file type passed for fasta file <- Maybe should double check?
+            rrna_fa = infile
+
     split_names = split_rrna(rrna_fa, rrna_type, outdir)
 
     rrna_dict = {rt: RRNA(rrna_fa=split_names[rt], name=name,
@@ -42,17 +55,20 @@ def design_oligos(infile, ftype, name, pre=0, rrna_type=None, oligos_fa=None, ma
 
     # generate oligos for each rRNA type
     for rname, rna_obj in rrna_dict.items():
+        #if old oligos are provided, use them
         if oligos_fa:
             exp.align_oligos(rna_obj, oligos_fa)
             rna_obj.oligos_df = exp.find_old_oligos(rna_obj, oligos_fa)
+
         new_oligos = exp.gapfill(rna_obj)
         if rna_obj.oligos_df:
             rna_obj.oligos_df = pd.concat([rna_obj.oligos_df, new_oligos])
         else:
             rna_obj.oligos_df = new_oligos
 
-    oligos = pd.concat([i.oligos_df for i in rrna_dict.values]).reset_index()
-    oligos.to_csv('test.csv')
+    oligos = pd.concat([i.oligos_df for i in rrna_dict.values()]).reset_index()
+    oligo_name = path.join(outdir, name + '_oligosdf.csv')
+    oligos.to_csv(oligo_name)
 
 
 def split_rrna(rrna_fa, rrna_type, outdir):
@@ -66,6 +82,7 @@ def split_rrna(rrna_fa, rrna_type, outdir):
             for refseq in SeqIO.parse(rrna_fa, 'fasta'):
                 if refseq.id.split('|')[1].startswith(rt):
                     rt_out.write(f'>{refseq.id}\n{refseq.seq}\n')
+                    rt_found = True
             if not rt_found:
                 raise ValueError(f'No {rt} rRNA found in {rrna_fa}')
     return split_names
@@ -115,10 +132,10 @@ if __name__ == '__main__':
     # TODO: add force argument on whether to overwrite any of the files in there.
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
-    p.add_argument('rrna_fa', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
+    p.add_argument('infile', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
                    nargs='*')
     p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
-                   type=str)
+                   type=str, required=True)
     p.add_argument('-n', '--name', help='Name of the experiment design. Makes it easier to track multiple'
                    'designs; default rrd', type=str, default='rrd')
     p.add_argument('-p', '--pre', help='Number of bp upstream of rRNA start site to include as oligo targets.'

@@ -18,8 +18,6 @@ class RRNA:
         rrna_fa: str, list
             path to input file or list of paths to multiple input rrna file; each fasta file
             must contain sequences from single rtype e.g. '23S', '5S' etc.
-        ftype: str
-            type of input file; 'genbank' or 'fasta'
         outdir: str, default rrd
             path to the output directory
         pre: int, default 0
@@ -62,8 +60,6 @@ class RRNA:
 
     @rrna_fa.setter
     def rrna_fa(self, rrna_fa):
-        if type(rrna_fa) == str:
-            rrna_fa = [rrna_fa]
         self.__rrna_fa = rrna_fa
 
     def get_consensus(self, clst='clustal.clst', cs_file='consensus.fa', cs_name='consensus'):
@@ -84,12 +80,11 @@ class RRNA:
 
         if path.isfile(cs_file) and cs_name in [r.id for r in SeqIO.parse(cs_file, 'fasta')]:
             Warning(f'Consensus sequence for {cs_name} already exists in {cs_file}.'
-                          'File will not be overwritten')
+                    'File will not be overwritten')
             return cs_file
 
         # get multiple sequence alignment with clstalo
         call = ['muscle', '-in', self.rrna_fa, '-out', clst, '-clw']
-        print('Running MUSCLE with command: ' + ' '.join(call))
         subprocess.call(call)
 
         # get consensus sequence from genetics file
