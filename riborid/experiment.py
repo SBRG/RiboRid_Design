@@ -285,3 +285,24 @@ class Experiment:
         if gap_end - gap_start > self.max_gap:
             gaps.append((gap_start, gap_end))
             return gaps
+
+    def log_exp(self, logfile):
+        """
+        Writes the experimental conditions into a logfile.
+        Parameters:
+        -----------
+        logfile: str
+            path to the logfile where all experimental values (e.g. mt_thresh) will be logged
+        """
+
+        with open(logfile, 'w') as log:
+            log.write('Experiemntal Setup:\n')
+            log.write('---------------------\n\n')
+            log.write(f'Oligo Length: {self.oligo_len} bp \n')
+            log.write(f'Max Gap: {self.max_gap} bp \n')
+            log.write(f'Max Shift: {self.max_shift} bp \n')
+            log.write(f'Melting Threshold: {self.mt_thresh}C \n')
+            log.write(f'Melting Error: {self.mt_err}C \n')
+            log.write(f'Na Concentration: {self.Na} uM \n')
+            log.write(f'Mg Concentration: {self.Mg} uM \n')
+            log.write(f'Oligos Concentration: {self.oligoc} nM \n')

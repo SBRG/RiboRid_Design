@@ -12,7 +12,7 @@ from os import path, mkdir
 
 
 def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
-                  mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None):
+                  mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None, log_exp=True):
     """
     Main function used to run riborid oligo design. This will generate the desired oligos given
     the sequence information from the organism and the experimental conditions.
@@ -69,7 +69,9 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     oligos = pd.concat([i.oligos_df for i in rrna_dict.values()]).reset_index()
     oligo_name = path.join(outdir, name + '_oligosdf.csv')
     oligos.to_csv(oligo_name)
-
+    if log_exp:
+        logfile = path.join(outdir,  name + '_exp.log')
+        exp.log_exp(logfile)
 
 def split_rrna(rrna_fa, rrna_type, outdir):
     """ Splits a full rRNA file into individual files """
@@ -119,7 +121,6 @@ def write_fasta(feat, ref_seq, pre, rrna_fa):
         fa_out.write('>{}|{}\n{}\n'.format(feat.qualifiers['locus_tag'][0],
                                            feat.qualifiers['product'][0],
                                            str(seq)))
-
 
 if __name__ == '__main__':
 
