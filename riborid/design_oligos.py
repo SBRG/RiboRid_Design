@@ -1,8 +1,5 @@
 #!/usr/bin/env python 
 
-"""
-THE NEXT THING TO FIGURE OUT HERE IS HOW TO HANDLE AND STORE INDIVIDUAL OLIGOS
-"""
 from rRNA import RRNA
 from experiment import Experiment
 
@@ -27,6 +24,8 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     if ftype not in ['genbank', 'fasta']:
         raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
 
+    if ftype == 'fasta' and pre !=0:
+        raise ValueError("Cannot generate oligos for pre-rRNA with rRNA fasta file. Need to pass genbank instead.")
     if not path.isdir(outdir):
         mkdir(outdir)
     # generate rRNA from genbank
@@ -124,13 +123,8 @@ def write_fasta(feat, ref_seq, pre, rrna_fa):
 
 if __name__ == '__main__':
 
-    """
-    (rrna_fa, ftype, name, pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
-    mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None):
-    """
-
-
     # TODO: add force argument on whether to overwrite any of the files in there.
+    # TODO: add the log option as a flag
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
     p.add_argument('infile', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
