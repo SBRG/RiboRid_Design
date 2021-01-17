@@ -20,7 +20,7 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     exp = Experiment(max_gap, max_shift, oligo_len, mt_thresh, mt_err, na, mg, oligoc)
 
     if not rrna_type:
-        rrna_type = ['16S', '23S']
+        rrna_type = ['16S', '23S', '5S']
 
     if ftype not in ['genbank', 'fasta']:
         raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
@@ -70,7 +70,7 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     oligo_name = path.join(outdir, name + '_oligosdf.csv')
 
     # write the output files
-    oligos.to_csv(oligo_name)
+    oligos.to_csv(oligo_name, index=False)
 
     if log_exp:
         logfile = path.join(outdir,  name + '_exp.log')
@@ -137,7 +137,8 @@ def write_primers(name, oligos_df, outdir):
             fa_in = path.join(outdir, rname + '.fa')
             seq = next(SeqIO.parse(fa_in, 'fasta'))
             for idx, row in grp.iterrows():
-                pout.write(f'>{row.oligo_name}|{rname}\n{seq.seq}\n')
+                pseq = seq.seq[row.rRNA_start: row.rRNA_end + 1]
+                pout.write(f'>{row.oligo_name}|{rname}\n{pseq}\n')
 
 
 if __name__ == '__main__':
