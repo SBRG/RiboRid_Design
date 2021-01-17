@@ -8,8 +8,9 @@ import pandas as pd
 from os import path, mkdir
 
 
-def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
-                  mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd', oligo_df=None, log_exp=True):
+def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10,
+                  oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd',
+                  oligos_df=None, log_exp=False):
     """
     Main function used to run riborid oligo design. This will generate the desired oligos given
     the sequence information from the organism and the experimental conditions.
@@ -24,7 +25,7 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     if ftype not in ['genbank', 'fasta']:
         raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
 
-    if ftype == 'fasta' and pre !=0:
+    if ftype == 'fasta' and pre != 0:
         raise ValueError("Cannot generate oligos for pre-rRNA with rRNA fasta file. Need to pass genbank instead.")
     if not path.isdir(outdir):
         mkdir(outdir)
@@ -36,25 +37,25 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
         rrna_fa = path.join(outdir, 'combined_rRNA.fa')
         for gbk in infile:
             parse_genbank(gbk, pre, rrna_type, rrna_fa)
-    #rrna fasta passed
+    # rrna fasta passed
     else:
         if type(infile) == list:
-                if len(infile) > 1:
-                    raise ValueError('More than one rrna fasta passed. Concat all sequences into single fasta file.')
-                else:
-                    rrna_fa = infile[0]
-        else: #str or file type passed for fasta file <- Maybe should double check?
+            if len(infile) > 1:
+                raise ValueError('More than one rrna fasta passed. Concat all sequences into single fasta file.')
+            else:
+                rrna_fa = infile[0]
+        else:  # str or file type passed for fasta file <- Maybe should double check?
             rrna_fa = infile
 
     split_names = split_rrna(rrna_fa, rrna_type, outdir)
 
     rrna_dict = {rt: RRNA(rrna_fa=split_names[rt], name=name,
                           rtype=rt, outdir=outdir, pre=pre,
-                          oligos_df=oligo_df) for rt in rrna_type}
+                          oligos_df=oligos_df) for rt in rrna_type}
 
     # generate oligos for each rRNA type
     for rname, rna_obj in rrna_dict.items():
-        #if old oligos are provided, use them
+        # if old oligos are provided, use them
         if oligos_fa:
             exp.align_oligos(rna_obj, oligos_fa)
             rna_obj.oligos_df = exp.find_old_oligos(rna_obj, oligos_fa)
@@ -67,10 +68,17 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
 
     oligos = pd.concat([i.oligos_df for i in rrna_dict.values()]).reset_index()
     oligo_name = path.join(outdir, name + '_oligosdf.csv')
+
+    # write the output files
     oligos.to_csv(oligo_name)
+
     if log_exp:
         logfile = path.join(outdir,  name + '_exp.log')
         exp.log_exp(logfile)
+
+    # TODO: Check if you can still write primers if you have old and new mixed
+    write_primers(name, oligos, outdir)
+
 
 def split_rrna(rrna_fa, rrna_type, outdir):
     """ Splits a full rRNA file into individual files """
@@ -121,14 +129,24 @@ def write_fasta(feat, ref_seq, pre, rrna_fa):
                                            feat.qualifiers['product'][0],
                                            str(seq)))
 
+
+def write_primers(name, oligos_df, outdir):
+    primerfa = path.join(outdir, name + '_primers.fa')
+    with open(primerfa, 'w') as pout:
+        for rname, grp in oligos_df.groupby('target_rRNA'):
+            fa_in = path.join(outdir, rname + '.fa')
+            seq = next(SeqIO.parse(fa_in, 'fasta'))
+            for idx, row in grp.iterrows():
+                pout.write(f'>{row.oligo_name}|{rname}\n{seq.seq}\n')
+
+
 if __name__ == '__main__':
 
     # TODO: add force argument on whether to overwrite any of the files in there.
-    # TODO: add the log option as a flag
     import argparse
     p = argparse.ArgumentParser(description='Design oligos for rRNA removal using RiboRid protocol.')
-    p.add_argument('infile', help='Paths to input files of the target organism. Must have rRNA annotated for genbank file.',
-                   nargs='*')
+    p.add_argument('infile', help='Paths to input files of the target organism. Must have '
+                                  'rRNA annotated for genbank file.', nargs='*')
     p.add_argument('--ftype', help='type of input file; fasta or genbank', choices=['genbank', 'fasta'],
                    type=str, required=True)
     p.add_argument('-n', '--name', help='Name of the experiment design. Makes it easier to track multiple'
@@ -138,15 +156,15 @@ if __name__ == '__main__':
     p.add_argument('--rrna_type', help='Type of rRNAs to design oligos against; Default 16s and 23S.',
                    nargs='*')
     p.add_argument('--oligos_fa', help='Path to fasta file with sequences of old oligos to be reused.',
-                  type=str)
+                   type=str)
     p.add_argument('--max_gap', help='Maximum gap allowed between oligos; default 50',
-                  type=int, default=50)
+                   type=int, default=50)
     p.add_argument('--max_shift', help='Maximum number of bp oligos can be shifted to find the one with'
                    'highest melting temperature; default 10', type=int, default=10)
     p.add_argument('--oligo_len', help='Length of the oligos design. All oligos (old and new) must have'
                    'same oligo length; default 32', type=int, default=32)
     p.add_argument('--mt_thresh', help='Minimum melting temperature allowed for any given oligo; default 65',
-                  type=int, default=65)
+                   type=int, default=65)
     p.add_argument('--mt_err', help='Error on melting temp estimator. This value is added to \'mt_thresh\''
                    'to ensure that oligo is always above the provided melting threshold; default 3',
                    type=int, default=3)
@@ -158,8 +176,10 @@ if __name__ == '__main__':
                    type=int, default=150)
     p.add_argument('-o', '--outdir', help='Output directory. WARNING: Will overwrite'
                    'files(fix coming soon); default rrd', type=str, default='rrd')
-    p.add_argument('--oligo_df', help='Path to csv file containing previously designed'
+    p.add_argument('--oligos_df', help='Path to csv file containing previously designed'
                    'oligos for target organism', type=str)
+    p.add_argument('--log_exp', help='Writes the experimental setup in a log file when flag is present',
+                   action='store_true')
     
     params = vars(p.parse_args())
     design_oligos(**params)

@@ -202,6 +202,7 @@ class Experiment:
                 gap_len = gap[1] - gap[0]
                 gpos = gap[0]
 
+                # jump by oligo length or max gap, whichever is larger
                 itr = max(self.max_gap, self.oligo_len)
                 while gpos + itr <= gap[1]:
                     if gpos + self.max_gap + self.oligo_len < gap[1]:
@@ -223,6 +224,7 @@ class Experiment:
                     oligo_n += 1
                     new_oligos.append([name, seq_id, 1.0, gpos, gpos + self.oligo_len,
                                        1, self.oligo_len, self.oligo_len, mt_tm, 'new_oligo'])
+                    # write_primers(name, oseq, oligo_file)
                     gpos = gpos + self.oligo_len
 
         return pd.DataFrame(new_oligos, columns=['oligo_name', 'target_rRNA', 'pident', 'rRNA_start',

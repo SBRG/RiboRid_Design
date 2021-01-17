@@ -35,7 +35,7 @@ class RRNA:
         self.oname = path.abspath(f'{self.outdir}/{self.name}_{self.rtype}')
         self.consensus = self.get_consensus(clst=self.oname + '_clustal.clst',
                                             cs_file=self.oname + '_consensus',
-                                            cs_name=self.name + '_consensus')
+                                            cs_name=f'{self.name}_{self.rtype}_consensus')
 
         self.oligos_df = oligos_df
 
@@ -93,6 +93,6 @@ class RRNA:
         consensus = summary_align.dumb_consensus()
         
         with open(cs_file, 'w') as cs_out:
-            cs_out.write('>{}_{}\n{}\n'.format(cs_name, self.rtype, str(consensus)))
+            cs_out.write(f'>{cs_name}\n{str(consensus)}\n')
 
         return cs_file
