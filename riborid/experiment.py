@@ -5,10 +5,22 @@ import os
 
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
-from Bio.SeqUtils import MeltingTemp as mt
+from Bio.SeqUtils.MeltingTemp import Tm_NN, R_DNA_NN1
+from Bio.SeqUtils import GC
 from Bio.Seq import Seq
 
-# TODO: implement the mt_tm error correction
+
+def tmp_correction(func):
+    def wrapper(*args, **kwargs):
+        mt_tm = func(*args, **kwargs)
+        gc_cont = GC(args[0])
+        coef, intercept = 0.11858199920202486, -2.3092058068436434
+        return mt_tm - (gc_cont * coef + intercept)
+
+    return wrapper
+Tm_NN = tmp_correction(Tm_NN)
+
+
 class Experiment:
     """
     This class holds all the information about the experimental setup
@@ -89,7 +101,7 @@ class Experiment:
             else:
                 maxidx, maxlen = self.longest_stretch(hsp.match)
                 matchseq = Seq(hsp.query[maxidx: maxidx + maxlen])
-            mt_tm = mt.Tm_NN(matchseq.transcribe(), nn_table=mt.R_DNA_NN1,
+            mt_tm = Tm_NN(matchseq.transcribe(), nn_table=R_DNA_NN1,
                              Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
             if mt_tm >= self.mt_thresh - self.mt_err:
                 oligo_list.append([align.title.split(' ')[-1], aln_info[0],
@@ -213,7 +225,7 @@ class Experiment:
                         gpos = int(gap_mid - round(float(self.oligo_len)/2))
 
                     oseq = rRNA_seq[gpos: gpos + self.oligo_len]
-                    mt_tm = mt.Tm_NN(oseq.transcribe(), nn_table=mt.R_DNA_NN1,
+                    mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
                                      Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
 
                     # if mt_tm is too low, shift the frame to right and try again
@@ -251,7 +263,7 @@ class Experiment:
         while shift_n < self.max_shift:
             gpos = gpos - 1  # only shift "left", shifting right would increase gap length
             oseq = rRNA_seq[gpos: gpos + self.oligo_len]
-            mt_tm = mt.Tm_NN(oseq.transcribe(), nn_table=mt.R_DNA_NN1,
+            mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
                              Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
             if max(max_tm, mt_tm) == mt_tm:
                 max_tm = mt_tm
