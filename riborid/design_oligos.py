@@ -165,10 +165,10 @@ if __name__ == '__main__':
     p.add_argument('--oligo_len', help='Length of the oligos design. All oligos (old and new) must have'
                    'same oligo length; default 32', type=int, default=32)
     p.add_argument('--mt_thresh', help='Minimum melting temperature allowed for any given oligo; default 65',
-                   type=int, default=65)
+                   type=float, default=65)
     p.add_argument('--mt_err', help='Error on melting temp estimator. This value is added to \'mt_thresh\''
                    'to ensure that oligo is always above the provided melting threshold; default 3',
-                   type=int, default=3)
+                   type=float, default=3)
     p.add_argument('--na', help='Sodium concentration (uM) in the riboRid reaction; default 100',
                    type=int, default=100)
     p.add_argument('--mg', help='Magnesium concentration (uM) in the riboRid reaction; default 4',
