@@ -138,6 +138,7 @@ def write_primers(name, oligos_df, outdir):
             seq = next(SeqIO.parse(fa_in, 'fasta'))
             for idx, row in grp.iterrows():
                 pseq = seq.seq[row.rRNA_start: row.rRNA_end + 1]
+                pseq = pseq.reverse_complement()
                 pout.write(f'>{row.oligo_name}|{rname}\n{pseq}\n')
 
 
