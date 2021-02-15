@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
-project_dir = Path(__file__).parent
+from setuptools import setiup
+
+setup(
+name='RiboridDesign',
+version='0.1.0',
+author='Saugat Poudel',
+author_email='sapoudel@ucsd.edu',
+description='Python package for designing oligos for riborid protocol',
+maintainer='Saugat Poudel',
+url='https://github.com/SBRG/RiboRid_Design',
+packages=setuptools.find_packages(),
+python_requires=">3.6",
+include_package_data=True,
+install_requires=open('requirements.txt').read(),
+platforms="GNU/Linux, Mac OS X > 10.7"
+)
