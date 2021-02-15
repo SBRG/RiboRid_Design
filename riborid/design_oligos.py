@@ -9,7 +9,7 @@ from os import path, mkdir
 
 
 def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10,
-                  oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd',
+                  oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd_res',
                   oligos_df=None, log_exp=False):
     """
     Main function used to run riborid oligo design. This will generate the desired oligos given
