@@ -60,7 +60,6 @@ class Experiment:
         print((' '.join(blast)))
         subprocess.call(blast)
 
-
     def find_old_oligos(self, rrna):
         """
         Find oligos from the library that can be reused. Oligos with length of exact sequence
@@ -138,7 +137,6 @@ class Experiment:
                 idx += 1
         return old_oligos_df.drop(drop_idx)
 
-
     def longest_stretch(matches):
         """
         Find the longest stretch of repeated '|' in a string. '|' represents
@@ -164,7 +162,6 @@ class Experiment:
                 maxidx, maxlen = idx, grouplen
             idx += grouplen
         return maxidx, maxlen
-
 
     def gapfill(self,  rrna):
         """
