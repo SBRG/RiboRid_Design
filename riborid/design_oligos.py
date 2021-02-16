@@ -176,8 +176,8 @@ if __name__ == '__main__':
                    type=int, default=4)
     p.add_argument('--oligoc', help='Oligos concentration (nM) in the riboRid reaction; default 150',
                    type=int, default=150)
-    p.add_argument('-o', '--outdir', help='Output directory. WARNING: Will overwrite'
-                   'files(fix coming soon); default rrd', type=str, default='rrd')
+    p.add_argument('-o', '--outdir', help='Output directory. WARNING: Will overwrite '
+                   'files(fix coming soon); default rrd_res', type=str, default='rrd_res')
     p.add_argument('--oligos_df', help='Path to csv file containing previously designed'
                    'oligos for target organism', type=str)
     p.add_argument('--log_exp', help='Writes the experimental setup in a log file when flag is present',

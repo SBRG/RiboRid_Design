@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+import setuptools
 
-setup(
+setuptools.setup(
 name='RiboridDesign',
 version='0.1.0',
 author='Saugat Poudel',
