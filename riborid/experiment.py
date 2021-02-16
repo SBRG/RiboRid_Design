@@ -26,15 +26,16 @@ class Experiment:
     This class holds all the information about the experimental setup
     e.g. oligco concentration, melting temp etc.
     """
-    def __init__(self, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150):
+    def __init__(self, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
+                 mt_err=3, na=100, mg=4, oligoc=150):
 
         self.max_gap = max_gap
         self.max_shift = max_shift
         self.oligo_len = oligo_len
         self.mt_thresh = mt_thresh
         self.mt_err = mt_err
-        self.Na = na
-        self.Mg = mg
+        self.na = na
+        self.mg = mg
         self.oligoc = oligoc
 
 
@@ -102,7 +103,7 @@ class Experiment:
                 maxidx, maxlen = self.longest_stretch(hsp.match)
                 matchseq = Seq(hsp.query[maxidx: maxidx + maxlen])
             mt_tm = Tm_NN(matchseq.transcribe(), nn_table=R_DNA_NN1,
-                             Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
+                          Na=self.na, Mg=self.mg, dnac1=self.oligoc)
             if mt_tm >= self.mt_thresh - self.mt_err:
                 oligo_list.append([align.title.split(' ')[-1], aln_info[0],
                                    float(hsp.identities)/len(hsp.query), hsp.query_start,
@@ -179,8 +180,8 @@ class Experiment:
         reaction, default=65.
         mt_err: temperature above the mt_thresh used for cutoff, needed because most melting
         temp. calculators have error of +/- 2.7C, default=3.
-        na: concentration of Na in mM, default=100.
-        mg: Concetration of Mg in mM, default=4.
+        na: concentration of na in mM, default=100.
+        mg: Concetration of mg in mM, default=4.
         oligoc: concentration of oligos in nM, default=150
         Returns:
         --------
@@ -226,7 +227,7 @@ class Experiment:
 
                     oseq = rRNA_seq[gpos: gpos + self.oligo_len]
                     mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
-                                     Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
+                                  Na=self.na, Mg=self.mg, dnac1=self.oligoc)
 
                     # if mt_tm is too low, shift the frame to right and try again
                     if mt_tm < self.mt_thresh:
@@ -264,7 +265,7 @@ class Experiment:
             gpos = gpos - 1  # only shift "left", shifting right would increase gap length
             oseq = rRNA_seq[gpos: gpos + self.oligo_len]
             mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
-                             Na=self.Na, Mg=self.Mg, dnac1=self.oligoc)
+                          Na=self.na, Mg=self.mg, dnac1=self.oligoc)
             if max(max_tm, mt_tm) == mt_tm:
                 max_tm = mt_tm
                 spos = gpos
@@ -317,6 +318,6 @@ class Experiment:
             log.write(f'Max Shift: {self.max_shift} bp \n')
             log.write(f'Melting Threshold: {self.mt_thresh}C \n')
             log.write(f'Melting Error: {self.mt_err}C \n')
-            log.write(f'Na Concentration: {self.Na} uM \n')
-            log.write(f'Mg Concentration: {self.Mg} uM \n')
+            log.write(f'na Concentration: {self.na} uM \n')
+            log.write(f'mg Concentration: {self.mg} uM \n')
             log.write(f'Oligos Concentration: {self.oligoc} nM \n')

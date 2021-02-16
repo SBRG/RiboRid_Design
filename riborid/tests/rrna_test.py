@@ -1,6 +1,6 @@
 
 import hashlib
-import os.path
+import os
 import pytest
 from riborid import rRNA  # ,design_oligos, experiment,
 import shutil
