@@ -228,7 +228,7 @@ class Experiment:
 
                     # if mt_tm is too low, shift the frame to right and try again
                     if mt_tm < self.mt_thresh:
-                        gpos, mt_tm = self.__find_maxtm(gpos, rRNA_seq, oseq)
+                        gpos, mt_tm = self.__find_maxtm(gpos, rRNA_seq)
 
                     name = 'New_Oligo_' + str(oligo_n)
                     oligo_n += 1
