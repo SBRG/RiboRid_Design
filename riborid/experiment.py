@@ -244,8 +244,7 @@ class Experiment:
                                                  'rRNA_end', 'oligo_start', 'oligo_end', 'oligo_len',
                                                  'melting_temp', 'set'])
 
-
-    def __find_maxtm(self, gpos, rRNA_seq, oseq):
+    def __find_maxtm(self, gpos, rRNA_seq):
         """
         scans the region to find the location with highest melting temp.
         Parameters:
