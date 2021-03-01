@@ -6,7 +6,6 @@ from riborid import rRNA, experiment  # ,design_oligos, experiment,
 import shutil
 import pandas as pd
 
-# TODO: figure out how to make this into a session fixture that returns class
 @pytest.fixture(scope='class')
 def create_rrna(request):
     request.cls.test_rrna = rRNA.RRNA(rrna_fa='test_data/Saureus_TCH1516_23S.fa',
@@ -50,9 +49,7 @@ def create_experiment(request):
     os.mkdir('exp_test')
     request.cls.test_exp = experiment.Experiment(max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
                                                  mt_err=3, na=100, mg=4, oligoc=150)
-
     yield
-
     shutil.rmtree('exp_test')
 
 
