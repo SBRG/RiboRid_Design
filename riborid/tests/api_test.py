@@ -1,9 +1,8 @@
 import os
 from riborid import get_auth
 import pytest
-import requests
 
-class TestRequest:
+class ExRequest:
     def __init__(self):
         self.pwd = os.environ['PASSWORD']
         self.usr = os.environ['USR']
@@ -12,7 +11,7 @@ class TestRequest:
 
 @pytest.fixture(scope='class')
 def create_request(request):
-    request.cls.test_api = TestRequest()
+    request.cls.test_api = ExRequest()
     yield
     os.remove('access_token.txt')
 

@@ -34,7 +34,11 @@ def get_authentication(client_info, idt_username, idt_password):
         raise RuntimeError("Request failed with error code:" + response.status + "\nBody:\n" + body)
 
     body_dict = json.loads(body)
-    return body_dict["access_token"]
+
+    with open('access_token.txt', 'w') as out:
+        out.write(body_dict["access_token"])
+
+    # return body_dict["access_token"]
 
 
 # running from cmd line
@@ -56,6 +60,6 @@ if __name__ == "__main__":
         cinfo = f.readline().strip()
 
     token = get_authentication(cinfo, params['usr'], idt_pwd)
-
-    with open('access_token.txt', 'w') as out:
-        out.write(token)
+    #
+    # with open('access_token.txt', 'w') as out:
+    #     out.write(token)

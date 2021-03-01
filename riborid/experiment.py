@@ -10,6 +10,8 @@ from Bio.SeqUtils.MeltingTemp import Tm_NN, R_DNA_NN1
 from Bio.SeqUtils import GC
 from Bio.Seq import Seq
 
+from riborid import get_auth
+
 
 def tmp_correction(func):
     def wrapper(*args, **kwargs):
