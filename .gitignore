@@ -41,3 +41,6 @@ diocs/_build/
 
 #IDE files
 .idea/
+
+#token files
+access_token.txt
