@@ -2,6 +2,7 @@ import itertools
 import subprocess
 import pandas as pd
 import os
+import requests
 
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
@@ -18,6 +19,8 @@ def tmp_correction(func):
         return mt_tm - (gc_cont * coef + intercept)
 
     return wrapper
+
+
 Tm_NN = tmp_correction(Tm_NN)
 
 
@@ -27,7 +30,7 @@ class Experiment:
     e.g. oligco concentration, melting temp etc.
     """
     def __init__(self, max_gap=50, max_shift=10, oligo_len=32, mt_thresh=65,
-                 mt_err=3, na=100, mg=4, oligoc=150):
+                 mt_err=3, na=100, mg=4, oligoc=150, idt_calc=False):
 
         self.max_gap = max_gap
         self.max_shift = max_shift
@@ -37,7 +40,19 @@ class Experiment:
         self.na = na
         self.mg = mg
         self.oligoc = oligoc
+        self.idt_calc = idt_calc
 
+        #get the access token
+        if self.idt_calc:
+            if not os.path.isfile('access_token.txt'):
+                raise FileNotFoundError('Token file containing access_token is missing.'
+                                        'Please create a new one with get_auth.py')
+            with open('access_token.txt', 'r') as f:
+                self.token = f.readline().strip()
+
+            self.url = "https://www.idtdna.com/restapi/v1/OligoAnalyzer/Analyze"
+            self.headers = {'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + self.token}
 
     def align_oligos(self, rrna, oligos_fa):
         """
@@ -101,8 +116,7 @@ class Experiment:
             else:
                 maxidx, maxlen = self.longest_stretch(hsp.match)
                 matchseq = Seq(hsp.query[maxidx: maxidx + maxlen])
-            mt_tm = Tm_NN(matchseq.transcribe(), nn_table=R_DNA_NN1,
-                          Na=self.na, Mg=self.mg, dnac1=self.oligoc)
+            mt_tm = self._check_temp(seq=matchseq.transcribe())
             if mt_tm >= self.mt_thresh - self.mt_err:
                 oligo_list.append([align.title.split(' ')[-1], aln_info[0],
                                    float(hsp.identities)/len(hsp.query), hsp.query_start,
@@ -137,7 +151,34 @@ class Experiment:
                 idx += 1
         return old_oligos_df.drop(drop_idx)
 
-    def longest_stretch(matches):
+    def _check_temp(self, seq):
+        if self.idt_calc:
+            response = self._calc_idt_temp(seq)
+            return float(response.split(':')[9].split(',')[0])  # grab melting temp
+
+        return Tm_NN(seq, Na=self.na, Mg=self.mg, dnac1=self.oligoc, nn_table=R_DNA_NN1)
+
+
+    def _calc_idt_temp(self, seq):
+        """
+        Gets melting temp using the IDT oligo analyzer API
+        """
+        payload = f'{{\"Sequence\":\"{seq}\",\"NaConc\":{self.na},\"MgConc\":{self.mg},\"DNTPsConc\":{self.dntp},\"OligoConc\"\
+                :{self.oligoc},\"NucleotideType\":\"RNA\"}}'.replace(' ', '')
+
+        response = requests.request("POST", url=self.url, headers=self.headers, data=payload)
+
+        if response.status == 200:
+            return response.text()
+        elif response.status == 401:
+           # TODO: figure out how to handle this better, regen token w/o crashing
+           raise ConnectionError('Authentication failed. The IDT token may have expired.')
+        else:
+            raise ConnectionError('Unable to connect to IDT properly.')
+
+
+
+    def longest_stretch(self, matches):
         """
         Find the longest stretch of repeated '|' in a string. '|' represents
         match in a BLAST outcome
@@ -223,8 +264,7 @@ class Experiment:
                         gpos = int(gap_mid - round(float(self.oligo_len)/2))
 
                     oseq = rRNA_seq[gpos: gpos + self.oligo_len]
-                    mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
-                                  Na=self.na, Mg=self.mg, dnac1=self.oligoc)
+                    mt_tm = self._check_temp(oseq.transcribe())
 
                     # if mt_tm is too low, shift the frame to right and try again
                     if mt_tm < self.mt_thresh:
@@ -260,8 +300,7 @@ class Experiment:
         while shift_n < self.max_shift:
             gpos = gpos - 1  # only shift "left", shifting right would increase gap length
             oseq = rRNA_seq[gpos: gpos + self.oligo_len]
-            mt_tm = Tm_NN(oseq.transcribe(), nn_table=R_DNA_NN1,
-                          Na=self.na, Mg=self.mg, dnac1=self.oligoc)
+            mt_tm = self._check_temp(oseq.transcribe())
             if max(max_tm, mt_tm) == mt_tm:
                 max_tm = mt_tm
                 spos = gpos

@@ -2,6 +2,8 @@
 
 from rRNA import RRNA
 from experiment import Experiment
+from get_auth import get_authentication
+import getpass
 
 from Bio import SeqIO
 import pandas as pd
@@ -10,30 +12,21 @@ from os import path, mkdir
 
 def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10,
                   oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd_res',
-                  oligos_df=None, log_exp=False):
+                  oligos_df=None, log_exp=False, idt_calc=False, id_file=None):
     """
     Main function used to run riborid oligo design. This will generate the desired oligos given
     the sequence information from the organism and the experimental conditions.
     """
 
     # initialize the experiment
-    exp = Experiment(max_gap, max_shift, oligo_len, mt_thresh, mt_err, na, mg, oligoc)
+    exp = Experiment(max_gap, max_shift, oligo_len, mt_thresh, mt_err, na, mg, oligoc, idt_calc)
 
-    if not rrna_type:
-        rrna_type = ['16S', '23S', '5S']
+    _make_checks(rrna_type, ftype, pre, outdir, idt_calc, id_file)  # check input params
 
-    if ftype not in ['genbank', 'fasta']:
-        raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
-
-    if ftype == 'fasta' and pre != 0:
-        raise ValueError("Cannot generate oligos for pre-rRNA with rRNA fasta file. Need to pass genbank instead.")
-    if not path.isdir(outdir):
-        mkdir(outdir)
     # generate rRNA from genbank
     if ftype == 'genbank':
         if type(infile) == str:
             infile = [infile]
-
         rrna_fa = path.join(outdir, 'combined_rRNA.fa')
         for gbk in infile:
             parse_genbank(gbk, pre, rrna_type, rrna_fa)
@@ -52,6 +45,13 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     rrna_dict = {rt: RRNA(rrna_fa=split_names[rt], name=name,
                           rtype=rt, outdir=outdir, pre=pre,
                           oligos_df=oligos_df) for rt in rrna_type}
+    # generate IDT token
+    if idt_calc:
+        usr = input('IDT username: ')
+        pwd = getpass.getpass()
+        with open(id_file, 'r') as f:
+            client_info = f.readline().strip()
+        get_authentication(client_info, usr, pwd)
 
     # generate oligos for each rRNA type
     for rname, rna_obj in rrna_dict.items():
@@ -79,6 +79,27 @@ def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=No
     # TODO: Check if you can still write primers if you have old and new mixed
     write_primers(name, oligos, outdir)
 
+
+def _make_checks(rrna_type, ftype, pre, outdir, idt_calc, id_file):
+    """
+    run sanity checks to make sure correct params were passed
+    """
+    if not rrna_type:
+        rrna_type = ['16S', '23S', '5S']
+
+    if ftype not in ['genbank', 'fasta']:
+        raise ValueError(f"ftype must be either 'genbank' or 'fasta.' {ftype} passed instead.")
+
+    if ftype == 'fasta' and pre != 0:
+        raise ValueError("Cannot generate oligos for pre-rRNA with rRNA fasta file. Need to pass genbank instead.")
+    if not path.isdir(outdir):
+        mkdir(outdir)
+
+    if idt_calc:
+        if id_file is None:
+            raise ValueError('Must pass id_file for temp check with IDT Analyzer.')
+        elif not path.isfile(id_file):
+            raise FileNotFoundError(f"{id_file} not found.")
 
 def split_rrna(rrna_fa, rrna_type, outdir):
     """ Splits a full rRNA file into individual files """
@@ -182,6 +203,9 @@ if __name__ == '__main__':
                    'oligos for target organism', type=str)
     p.add_argument('--log_exp', help='Writes the experimental setup in a log file when flag is present',
                    action='store_true')
+    p.add_argument('--idt_calc', help='Whether to use IDT API to calculate the melting temp instead of local calculator',
+                    action='store_true')
+    p.add_argument('--idt_file', help='Path to file containing the client_id and client_secret for IDT API', type=str)
     
     params = vars(p.parse_args())
     design_oligos(**params)
