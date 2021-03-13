@@ -17,7 +17,7 @@ Python 3.8 for certain functionalities.
 
 To create the conda environment::
 
-	conda create -n pymodulon python=3.8
+	conda create -n riborid python=3.8
 	conda activate riborid
 
 Next, download the github repository::
