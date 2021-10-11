@@ -43,6 +43,4 @@ To run riborid in default mode, all you need is the genbank file of your target 
 	design_oligos 'path/to/genbank/file' --ftype 'genbank'
 	
 The data will be stored in the newly created rrd_res folder. The rrd_primers.fa contains all the primer sequences while the rrd_oligosdf.csv contains the metadata associated with each of the sequences. 
-  
-.. |PyPI| image:: https://badge.fury.io/py/pymodulon.svg
-    :target: https://pypi.python.org/pypi/pymodulon
+
