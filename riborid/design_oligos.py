@@ -10,7 +10,7 @@ import pandas as pd
 from os import path, mkdir
 
 
-def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=None, oligos_fa=None, max_gap=50, max_shift=10,
+def design_oligos(infile, ftype, name='rrd', pre=0, rrna_type=['16S', '23S'], oligos_fa=None, max_gap=50, max_shift=10,
                   oligo_len=32, mt_thresh=65, mt_err=3, na=100, mg=4, oligoc=150, outdir='rrd_res',
                   oligos_df=None, log_exp=False, idt_calc=False, id_file=None):
     """
@@ -124,7 +124,6 @@ def parse_genbank(gbk, pre, rrna_type, rrna_fa):
         for feat in [f for f in ref_seq.features if f.type == 'rRNA']:
             product = feat.qualifiers['product'][0]
             # distinguish between 23S, 16S and 5S
-
             if product.startswith(tuple(rrna_type)):
                 write_fasta(feat, ref_seq, pre, rrna_fa)
                 rrna_found = True
@@ -176,8 +175,8 @@ if __name__ == '__main__':
                    'designs; default rrd', type=str, default='rrd')
     p.add_argument('-p', '--pre', help='Number of bp upstream of rRNA start site to include as oligo targets.'
                    'This deals with some organisms that have pre-rRNA; default 0', type=int, default=0)
-    p.add_argument('--rrna_type', help='Type of rRNAs to design oligos against; Default 16s and 23S.',
-                   nargs='*')
+    p.add_argument('--rrna_type', help='Type of rRNAs to design oligos against; Default 16S and 23S.',
+                   nargs='*', default=['16S', '23S'])
     p.add_argument('--oligos_fa', help='Path to fasta file with sequences of old oligos to be reused.',
                    type=str)
     p.add_argument('--max_gap', help='Maximum gap allowed between oligos; default 50',
