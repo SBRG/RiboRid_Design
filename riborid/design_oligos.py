@@ -205,7 +205,7 @@ if __name__ == '__main__':
                    action='store_true')
     p.add_argument('--idt_calc', help='Whether to use IDT API to calculate the melting temp instead of local calculator',
                     action='store_true')
-    p.add_argument('--idt_file', help='Path to file containing the client_id and client_secret for IDT API', type=str)
+    p.add_argument('--id_file', help='Path to file containing the client_id and client_secret for IDT API', type=str)
     
     params = vars(p.parse_args())
     design_oligos(**params)
