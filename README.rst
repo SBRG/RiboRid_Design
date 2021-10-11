@@ -31,7 +31,7 @@ Then install with ``pip`` using the ``-e`` flag::
 This method of installation will automatically update your
 package each time you pull from this repository.
 
-To update your code, run the following from your local pymodulon folder::
+To update your code, run the following from your local riborid folder::
 
 	git pull
 
