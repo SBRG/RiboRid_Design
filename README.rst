@@ -34,6 +34,10 @@ package each time you pull from this repository.
 To update your code, run the following from your local riborid folder::
 
 	git pull
+	
+Lastly, use conda to install muscle::
+
+	conda install -c bioconda muscle
 
 Basic run
 ~~~~~~~~~~~~
