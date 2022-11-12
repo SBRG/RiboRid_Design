@@ -35,9 +35,13 @@ To update your code, run the following from your local riborid folder::
 
 	git pull
 	
-Lastly, use conda to install muscle::
+Lastly, use conda to install muscle
 
-	conda install -c bioconda muscle
+!! The latest version of muscle (v5.1) is not compatible. Use muscle (v3.8.31) instead
+
+Muscle v3.8.31 is available through etetoolkit repository (last confirmed 11/11/2022)::
+
+	conda install -c etetoolkit muscle
 
 Basic run
 ~~~~~~~~~~~~
